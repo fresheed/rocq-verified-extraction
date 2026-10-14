@@ -55,7 +55,13 @@ with tempfile.TemporaryDirectory(prefix="oxcaml-backend-") as tmp:
             print(f"PASS {name}: Rocq rejection check")
             continue
         assert code.strip(), f"No OCaml program emitted by {original.name}"
-        true = re.search(r"\| (C_\w+_true)\b", code)
+        if name == "two_ptr":
+            # Keep the representative nested-match example readable.
+            assert "let floyd_loop :" in code
+            assert "type nat =" in code and "type 'a0 option =" in code
+            assert "_95_" not in code
+            assert re.search(r"(?m)^ +\| Some \(f1\) ->\n +\(match next f1 with", code)
+        true = re.search(r"\| (True(?:_\d+)?)\b", code)
         source = tmp / f"{name}.ml"
         if name == "empty_type":
             source.write_text(code)
