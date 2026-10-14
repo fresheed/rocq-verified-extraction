@@ -19,8 +19,18 @@ depends: [
   "rocq-core" { >= "9.1" }
   "rocq-stdlib" { >= "9.0" }
   "rocq-ceres-bytestring" { = "1.0.0" }
-  "rocq-metarocq-erasure-plugin" { >= "1.5.1" & < "1.5.2" }
+  "rocq-metarocq-erasure-plugin" { = "dev" }
   "malfunction" { >= "0.7.1" }
+]
+pin-depends: [
+  ["rocq-metarocq-utils.dev" "git+https://github.com/MetaRocq/metarocq.git#9.1"]
+  ["rocq-metarocq-common.dev" "git+https://github.com/MetaRocq/metarocq.git#9.1"]
+  ["rocq-metarocq-template.dev" "git+https://github.com/MetaRocq/metarocq.git#9.1"]
+  ["rocq-metarocq-pcuic.dev" "git+https://github.com/MetaRocq/metarocq.git#9.1"]
+  ["rocq-metarocq-template-pcuic.dev" "git+https://github.com/MetaRocq/metarocq.git#9.1"]
+  ["rocq-metarocq-safechecker.dev" "git+https://github.com/MetaRocq/metarocq.git#9.1"]
+  ["rocq-metarocq-erasure.dev" "git+https://github.com/MetaRocq/metarocq.git#9.1"]
+  ["rocq-metarocq-erasure-plugin.dev" "git+https://github.com/MetaRocq/metarocq.git#9.1"]
 ]
 tags: [
   "keyword:extraction"
