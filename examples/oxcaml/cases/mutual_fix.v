@@ -7,4 +7,4 @@ Fixpoint even (n : nat) : bool :=
 with odd (n : nat) : bool :=
   match n with 0 => false | S n => even n end.
 Definition mutual_fix := even 6 && negb (odd 6) && odd 5.
-MetaRocq Run (emit_test "mutual_fix" mutual_fix).
+MetaRocq Run (emit_test mutual_fix).

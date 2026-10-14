@@ -7,4 +7,4 @@ Definition basic :=
   let x := 3 in
   let x := S x in
   Nat.eqb (polymorphic_id x) 4 && polymorphic_id true.
-MetaRocq Run (emit_test "basic" basic).
+MetaRocq Run (emit_test basic).

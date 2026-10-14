@@ -11,4 +11,4 @@ End Right.
 Definition with_quote' := 3.
 Definition names := Nat.eqb (Left.external with_quote') 4 &&
                     Nat.eqb (Right.external with_quote') 5.
-MetaRocq Run (emit_test "names" names).
+MetaRocq Run (emit_test names).

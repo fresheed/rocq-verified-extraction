@@ -5,6 +5,7 @@ Requires the repository's existing Rocq dependencies and OCaml compiler.
 Builds Rocq libraries in the workspace so editors can resolve their imports.
 Generated OCaml sources and executables live in /tmp.
 Discovers individual Rocq fixtures in cases/ and compiles each independently.
+Each positive fixture prints one OCaml program; rejection fixtures print nothing.
 Pass a case name (e.g. basic) to run only that case; omit it to run all cases.
 """
 import argparse
@@ -47,15 +48,13 @@ run(*ROCQ, str(TEST_DIR / "test_backend.v"))
 with tempfile.TemporaryDirectory(prefix="oxcaml-backend-") as tmp:
     tmp = pathlib.Path(tmp)
     for original in fixtures:
-        output = run(*ROCQ, str(original))
-        cases = re.findall(r"BEGIN_OCAML (\w+)\n(.*?)END_OCAML", output, re.S)
-        if not cases:
-            assert original.stem.startswith("rejects_"), output
-            print(f"PASS {original.stem}: Rocq rejection check")
+        name = original.stem
+        code = run(*ROCQ, str(original))
+        if name.startswith("rejects_"):
+            assert not code.strip(), f"Unexpected output from {original.name}: {code}"
+            print(f"PASS {name}: Rocq rejection check")
             continue
-        assert len(cases) == 1, f"Expected one emitted program in {original.name}"
-        name, code = cases[0]
-        assert name == original.stem, f"Test label does not match {original.name}"
+        assert code.strip(), f"No OCaml program emitted by {original.name}"
         true = re.search(r"\| (C_\w+_true)\b", code)
         source = tmp / f"{name}.ml"
         if name == "empty_type":

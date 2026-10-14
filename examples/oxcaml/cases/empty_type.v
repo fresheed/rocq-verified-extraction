@@ -4,4 +4,4 @@ Open Scope bs_scope.
 
 Inductive empty : Type := .
 Definition empty_identity (x : empty) := x.
-MetaRocq Run (emit_test "empty_type" empty_identity).
+MetaRocq Run (emit_test empty_identity).

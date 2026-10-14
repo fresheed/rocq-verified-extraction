@@ -409,4 +409,4 @@ Definition tests_result := forallb (fun '(c, e) => eqb c e) test_cases.
 Theorem tests_correct: tests_result = true.
 Proof. reflexivity. Qed.
 
-MetaRocq Run (emit_test "two_ptr" tests_result).
+MetaRocq Run (emit_test tests_result).

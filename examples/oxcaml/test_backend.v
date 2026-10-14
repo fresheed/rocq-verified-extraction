@@ -6,12 +6,11 @@ From Stdlib Require Export List Bool Arith.
 Import ListNotations MonadNotation.
 Open Scope bs_scope.
 
-Definition emit_test {A : Type} (label : bytestring.string) (a : A) :=
+Definition emit_test {A : Type} (a : A) :=
   p <- tmQuoteRec a ;;
   code <- tmEval lazy (compile_oxcaml p) ;;
   match code with
-  | OxcamlBackend.Ok text =>
-    tmMsg ("BEGIN_OCAML " ++ label ++ OxcamlBackend.nl ++ text ++ "END_OCAML")
+  | OxcamlBackend.Ok text => tmMsg text
   | OxcamlBackend.Error error => tmFail error
   end.
 

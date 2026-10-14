@@ -7,4 +7,4 @@ Definition mapped :=
   | [a; b; c] => Nat.eqb a 3 && Nat.eqb b 4 && Nat.eqb c 5
   | _ => false
   end.
-MetaRocq Run (emit_test "mapped" mapped).
+MetaRocq Run (emit_test mapped).
