@@ -2,17 +2,21 @@
 """Compile and execute the OCaml actually emitted by the Gallina backend.
 
 Requires the repository's existing Rocq dependencies and OCaml compiler.
-Rebuilds the backend and pipeline; generated fixture artifacts live in /tmp.
+Builds Rocq libraries in the workspace so editors can resolve their imports.
+Generated OCaml sources and executables live in /tmp.
 Discovers individual Rocq fixtures in cases/ and compiles each independently.
+Pass a case name (e.g. basic) to run only that case; omit it to run all cases.
 """
+import argparse
 import pathlib
 import re
-import shutil
 import subprocess
 import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 TEST_DIR = pathlib.Path(__file__).resolve().parent
+ROCQ = ("rocq", "compile", "-Q", "theories", "Malfunction",
+        "-Q", "examples", "Malfunction.Examples")
 
 
 def run(*args):
@@ -22,23 +26,28 @@ def run(*args):
     return result.stdout
 
 
+fixtures = sorted((TEST_DIR / "cases").glob("*.v"))
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("case", nargs="?", metavar="CASE",
+                    help="case name without .v; omit to run all cases")
+args = parser.parse_args()
+if not fixtures:
+    parser.error("No backend test cases found")
+if args.case is not None:
+    available = {fixture.stem: fixture for fixture in fixtures}
+    if args.case not in available:
+        parser.error(f"Unknown case {args.case!r}. Available cases: {', '.join(available)}")
+    fixtures = [available[args.case]]
+
 for theory in ("OxcamlBackend", "OxcamlPipeline"):
-    run("rocq", "compile", "-Q", "theories", "Malfunction", f"theories/{theory}.v")
+    run(*ROCQ, f"theories/{theory}.v")
+
+run(*ROCQ, str(TEST_DIR / "test_backend.v"))
 
 with tempfile.TemporaryDirectory(prefix="oxcaml-backend-") as tmp:
     tmp = pathlib.Path(tmp)
-    infrastructure = tmp / "test_backend.v"
-    shutil.copyfile(TEST_DIR / "test_backend.v", infrastructure)
-    rocq = ("rocq", "compile", "-Q", "theories", "Malfunction",
-            "-Q", str(tmp), "Malfunction.Examples.oxcaml")
-    run(*rocq, str(infrastructure))
-    fixtures = sorted((TEST_DIR / "cases").glob("*.v"))
-    assert fixtures, "No backend test cases found"
-    (tmp / "cases").mkdir()
     for original in fixtures:
-        fixture = tmp / "cases" / original.name
-        shutil.copyfile(original, fixture)
-        output = run(*rocq, str(fixture))
+        output = run(*ROCQ, str(original))
         cases = re.findall(r"BEGIN_OCAML (\w+)\n(.*?)END_OCAML", output, re.S)
         if not cases:
             assert original.stem.startswith("rejects_"), output
