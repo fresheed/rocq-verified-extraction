@@ -7,6 +7,7 @@ Generated OCaml sources and executables live in /tmp.
 Discovers individual Rocq fixtures in cases/ and compiles each independently.
 Each positive fixture prints one OCaml program; rejection fixtures print nothing.
 Pass a case name (e.g. basic) to run only that case; omit it to run all cases.
+Use -o PATH with a single positive case to save the emitted OCaml program.
 """
 import argparse
 import pathlib
@@ -31,6 +32,8 @@ fixtures = sorted((TEST_DIR / "cases").glob("*.v"))
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("case", nargs="?", metavar="CASE",
                     help="case name without .v; omit to run all cases")
+parser.add_argument("-o", metavar="PATH", type=pathlib.Path,
+                    help="save emitted OCaml to PATH (single positive case only)")
 args = parser.parse_args()
 if not fixtures:
     parser.error("No backend test cases found")
@@ -39,6 +42,12 @@ if args.case is not None:
     if args.case not in available:
         parser.error(f"Unknown case {args.case!r}. Available cases: {', '.join(available)}")
     fixtures = [available[args.case]]
+
+if args.o is not None:
+    if len(fixtures) != 1:
+        parser.error("-o requires a single test case")
+    if fixtures[0].stem.startswith("rejects_"):
+        parser.error("-o is unavailable for rejection cases: they emit no OCaml code")
 
 for theory in ("OxcamlBackend", "OxcamlPipeline"):
     run(*ROCQ, f"theories/{theory}.v")
@@ -55,6 +64,8 @@ with tempfile.TemporaryDirectory(prefix="oxcaml-backend-") as tmp:
             print(f"PASS {name}: Rocq rejection check")
             continue
         assert code.strip(), f"No OCaml program emitted by {original.name}"
+        if args.o is not None:
+            args.o.write_text(code, encoding="utf-8")
         if name == "two_ptr":
             # Keep the representative nested-match example readable.
             assert "let floyd_loop :" in code
