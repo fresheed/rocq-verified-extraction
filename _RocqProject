@@ -24,9 +24,28 @@ theories/Pipeline.v
 theories/CompileCorrect.v
 theories/PipelineCorrect.v
 
+theories/OxcamlBackend.v
+theories/OxcamlPipeline.v
+
 theories/RealizabilitySemantics.v
 theories/Firstorder.v
 
 theories/PrintMli.v
 
 theories/Extraction.v
+
+examples/oxcaml/test_backend.v
+examples/oxcaml/cases/aliased.v
+examples/oxcaml/cases/basic.v
+examples/oxcaml/cases/captured.v
+examples/oxcaml/cases/empty_type.v
+examples/oxcaml/cases/mapped.v
+examples/oxcaml/cases/mutual_data.v
+examples/oxcaml/cases/mutual_fix.v
+examples/oxcaml/cases/names.v
+examples/oxcaml/cases/projected.v
+examples/oxcaml/cases/rejects_axiom.v
+examples/oxcaml/cases/rejects_fuel_exhaustion.v
+examples/oxcaml/cases/rejects_open_term.v
+examples/oxcaml/cases/rejects_primitive.v
+examples/oxcaml/cases/rejects_unknown_type.v
