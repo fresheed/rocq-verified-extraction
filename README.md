@@ -24,16 +24,16 @@ make -j 4
 ```
 
 The OCaml source backend tests additionally require Python 3. After building
-the project, run all cases or save the output of one case:
+the project, run all cases or a single one; for the latter case, you can
+additionally save the extracted OCaml code:
 
 ```sh
 python3 examples/oxcaml/test_backend.py
+python3 examples/oxcaml/test_backend.py two_ptr
 python3 examples/oxcaml/test_backend.py two_ptr -o /tmp/two_ptr.ml
 ```
 
-The script compiles and runs the emitted OCaml using `ocamlc`. The `-o` option
-saves the generated source without the test assertion and is only available
-for a single case that emits OCaml, not a rejection case.
+The script compiles and runs the emitted OCaml using `ocamlc`.
 
 ## Usage
 
