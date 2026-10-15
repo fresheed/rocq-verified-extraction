@@ -29,6 +29,62 @@ Import Transform.Transform.
 
 Import EWcbvEval.
 
+
+From MetaRocq.Erasure Require Import EWellformed EProgram.
+
+Section Dearging.
+  Import Optimize OptimizeCorrectness.
+
+  Definition dearg (p : (option dearg_set × ExAst.global_env) * EAst.term) : ExAst.global_env * EAst.term :=
+    match p.1.1 with
+    | Some masks => (dearg_env masks p.1.2, dearg_term masks p.2)
+    | None => (p.1.2, p.2)
+    end.
+
+  Program Definition dearging_transform_keep_types (efl := all_env_flags) cf :
+    Transform.t _ _  EAst.term EAst.term _ _ (eval_typed_eprogram_masks opt_wcbv_flags) (eval_typed_eprogram opt_wcbv_flags) :=
+    {| name := "dearging";
+      transform p _ := dearg p ;
+      pre p := post_dearging_checks efl cf p;
+      post p := let ep := (ExAst.trans_env p.1, p.2) in
+        wf_eprogram efl ep /\ EEtaExpandedFix.expanded_eprogram ep ;
+      obseq p hp p' v v' := v' = (dearg (p.1, v)).2 |}.
+  Next Obligation.
+  Proof.
+    (* Forgetting the retained types gives exactly the original transform. *)
+    destruct input as [[masks env] t]. destruct masks;
+      exact (correctness (ETransform.dearging_transform cf) _ p).
+  Qed.
+  Next Obligation.
+  Proof.
+    intros [[masks env] t] v pr ev. destruct masks;
+      exact (preservation (ETransform.dearging_transform cf) _ v pr ev).
+  Qed.
+
+End Dearging.
+
+From MetaRocq.Erasure Require Import EReorderCstrs.
+
+Program Definition dearging_transform_mapping_keep_types (cf : ETransform.dearging_config) :
+  Transform.t _ _ _ _ _ _ (eval_typed_eprogram_masks_mapping opt_wcbv_flags) (eval_typed_eprogram_mapping opt_wcbv_flags) :=
+  let tr := (dearging_transform_keep_types cf) in
+ {| name := name tr;
+    pre p := wf_inductives_mapping (ExAst.trans_env p.2.1.2) p.1 /\ pre tr p.2 ;
+    transform p hp := let nhs := proj2 hp in (p.1, transform tr p.2 nhs) ;
+    post p := wf_inductives_mapping (ExAst.trans_env p.2.1) p.1 /\ post tr p.2;
+    obseq p hp p' := obseq tr p.2 (proj2 hp) p'.2 |}.
+Next Obligation.
+Proof.
+  destruct input as [mapping [[masks env] t]]. destruct masks;
+    exact (correctness (Erasure.dearging_transform_mapping cf) _ (conj i p)).
+Qed.
+Next Obligation.
+Proof.
+  intros [mapping [[masks env] t]] v pr ev. destruct masks;
+    exact (preservation (Erasure.dearging_transform_mapping cf) _ v pr ev).
+Qed.
+
+
 (** *******************)
 Program Definition verified_typed_erasure_pipeline_oxcaml
   (efl := EWellformed.all_env_flags)
@@ -50,11 +106,12 @@ Program Definition verified_typed_erasure_pipeline_oxcaml
    typed_erase_transform_mapping ▷
    (* Remove match on box early for dearging *)
    remove_match_on_box_typed_transform_mapping (wcon := eq_refl) (hastrel := eq_refl) (hastbox := eq_refl)
-   (*
-    (* ▷ *)
-   (* Check if the preconditions for dearging are valid, otherwise dearging will be the identity *)
-   dearging_checks_transform_mapping econf.(dearging_config) (hastrel := eq_refl) (hastbox := eq_refl) ▷
-   dearging_transform_mapping econf.(dearging_config) ▷
+    ▷ 
+   (* Check if the preconditions for dearging are valid, otherwise dearging will be the identity *)   
+   dearging_checks_transform_mapping econf.(dearging_config) (hastrel := eq_refl) (hastbox := eq_refl)
+   ▷   
+   dearging_transform_mapping_keep_types econf.(dearging_config)
+   (*▷
    rebuild_wf_env_transform_mapping true true ▷
    verified_lambdabox_typed_pipeline econf. *)
    .
