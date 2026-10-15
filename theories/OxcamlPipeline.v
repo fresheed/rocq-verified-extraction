@@ -30,7 +30,7 @@ Import Transform.Transform.
 Import EWcbvEval.
 
 
-From MetaRocq.Erasure Require Import EWellformed EProgram.
+From MetaRocq.Erasure Require Import EWellformed EProgram EBeta.
 
 Section Dearging.
   Import Optimize OptimizeCorrectness.
@@ -42,7 +42,10 @@ Section Dearging.
     end.
 
   Program Definition dearging_transform_keep_types (efl := all_env_flags) cf :
-    Transform.t _ _  EAst.term EAst.term _ _ (eval_typed_eprogram_masks opt_wcbv_flags) (eval_typed_eprogram opt_wcbv_flags) :=
+    Transform.t 
+      (option dearg_set × ExAst.global_env) ExAst.global_env
+      EAst.term EAst.term _ _ 
+      (eval_typed_eprogram_masks opt_wcbv_flags) (eval_typed_eprogram opt_wcbv_flags) :=
     {| name := "dearging";
       transform p _ := dearg p ;
       pre p := post_dearging_checks efl cf p;
@@ -85,6 +88,68 @@ Proof.
 Qed.
 
 
+(** ***********************)
+Section BetaredTyped.
+
+Print ExAst.box_type.
+Definition betared_in_typed_constant_body (cst: ExAst.constant_body): ExAst.constant_body :=
+  let '(ExAst.Build_constant_body tp body) := cst in
+  ExAst.Build_constant_body tp (option_map betared body).
+
+Definition betared_in_typed_decl (d: ExAst.global_decl) :=
+  match d with
+  | ExAst.ConstantDecl cst => ExAst.ConstantDecl (betared_in_typed_constant_body cst)
+  | _ => d
+  end.
+
+Definition betared_typed_env (Σ : ExAst.global_env) : ExAst.global_env :=
+  map (fun '((kn, b), decl) => ((kn, b), betared_in_typed_decl decl)) Σ.
+
+Definition betared_program_typed (p : ExAst.global_env × EAst.term) : ExAst.global_env × EAst.term :=
+  (betared_typed_env p.1, betared p.2).
+
+(* TODO: use above *)
+Definition trans_eprog (p: inductives_mapping × (ExAst.global_env × EAst.term)): eprogram :=
+  (ExAst.trans_env p.2.1, p.2.2).
+
+Axiom trust_betared_program_typed_wf :
+  forall efl : EEnvFlags,
+  WcbvFlags ->
+  forall (input : Transform.program _ _),
+  wf_eprogram efl (trans_eprog input) -> 
+  wf_eprogram efl (trans_eprog (input.1, (betared_program_typed input.2))).
+Axiom trust_betared_pres_typed :
+  forall (efl : EEnvFlags) (wfl : WcbvFlags) (p : Transform.program _ _)
+  (v : EAst.term),
+  wf_eprogram efl (trans_eprog p) ->
+  eval_typed_eprogram_mapping wfl p v ->
+  exists v' : EAst.term,
+  eval_typed_eprogram_mapping wfl (p.1, (betared_program_typed p.2)) v' /\ v' = betared v.
+
+Program Definition betared_transformation_keep_types (efl : EEnvFlags) (wfl : WcbvFlags) :
+  Transform.t _ _ (ExAst.global_env × EAst.term) (ExAst.global_env × EAst.term) _ _
+    (eval_typed_eprogram_mapping wfl) (eval_typed_eprogram_mapping wfl) :=
+  {| name := "betared ";
+    transform '(inds, p) _ := (inds, betared_program_typed p);
+    pre p := wf_eprogram efl (trans_eprog p);
+    post p := wf_eprogram efl (trans_eprog p) ;
+    (* wf_inductives_mapping (ExAst.trans_env p.2.1) p.1 /\ post tr p.2; *)
+    obseq p hp p' v v' := v' = betared v |}.
+
+Next Obligation.
+Proof.
+  destruct input.
+  now apply trust_betared_program_typed_wf in p.  
+Qed.
+Next Obligation.
+  intros [inds ] v WF EVAL.
+  by eapply trust_betared_pres_typed in EVAL as [??]; eauto.
+Qed.
+
+End BetaredTyped.
+
+
+
 (** *******************)
 Program Definition verified_typed_erasure_pipeline_oxcaml
   (efl := EWellformed.all_env_flags)
@@ -111,6 +176,9 @@ Program Definition verified_typed_erasure_pipeline_oxcaml
    dearging_checks_transform_mapping econf.(dearging_config) (hastrel := eq_refl) (hastbox := eq_refl)
    ▷   
    dearging_transform_mapping_keep_types econf.(dearging_config)
+   ▷
+   betared_transformation_keep_types all_env_flags opt_wcbv_flags
+   
    (*▷
    rebuild_wf_env_transform_mapping true true ▷
    verified_lambdabox_typed_pipeline econf. *)
