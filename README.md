@@ -14,15 +14,26 @@ See the online [documentation](https://metarocq.github.io/rocq-verified-extracti
 
 ## Installation
 
-```
-opam switch create coq-malfunction --packages="ocaml-variants.4.14.1+options,ocaml-option-flambda"
-eval $(opam env --switch=coq-malfunction)
-opam repo add coq-released https://coq.inria.fr/opam/released
-opam pin -n -y "https://github.com/MetaRocq/metarocq.git#v1.3.2-8.19"
-opam pin -n -y "https://github.com/stedolan/malfunction.git#master"
+```sh
+opam switch create rocq-extraction --packages="ocaml-variants.4.14.2+options,ocaml-option-flambda"
+eval "$(opam env --switch=rocq-extraction --set-switch)"
+opam repo add rocq-released https://rocq-prover.org/opam/released
+opam install rocq-core.9.1.1 rocq-stdlib.9.0.0
 opam install . --deps-only
 make -j 4
 ```
+
+The OCaml source backend tests additionally require Python 3. After building
+the project, run all cases or save the output of one case:
+
+```sh
+python3 examples/oxcaml/test_backend.py
+python3 examples/oxcaml/test_backend.py two_ptr -o /tmp/two_ptr.ml
+```
+
+The script compiles and runs the emitted OCaml using `ocamlc`. The `-o` option
+saves the generated source without the test assertion and is only available
+for a single case that emits OCaml, not a rejection case.
 
 ## Usage
 
