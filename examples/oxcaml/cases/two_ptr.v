@@ -340,6 +340,9 @@ Definition floyd_array (arr : list (option nat)) : bool :=
   | None => false   (* unreachable, see floyd_array_terminates *)
   end.
 
+(* Will be extracted with [@zero_alloc] attribute of Oxcaml*)
+Definition floyd_array_zero_alloc := floyd_array.
+
 (* All pointer targets stored in the array. *)
 Definition targets (arr : list (option nat)) : list nat :=
   flat_map (fun o => match o with Some j => [j] | None => [] end) arr.
@@ -393,15 +396,15 @@ Qed.
 
 Definition test_cases: list (bool * bool) := [
   (* 0 -> 1 -> 2 -> 3 -> 4 -> 2   (rho-shaped) *)
-  (floyd_array [Some 1; Some 2; Some 3; Some 4; Some 2], true);
+  (floyd_array_zero_alloc [Some 1; Some 2; Some 3; Some 4; Some 2], true);
   (* 0 -> 1 -> 2 -> 3 -> null *)
-  (floyd_array [Some 1; Some 2; Some 3; None], false);
+  (floyd_array_zero_alloc [Some 1; Some 2; Some 3; None], false);
   (* 0 -> 0   (self-loop) *)
-  (floyd_array [Some 0], true);
+  (floyd_array_zero_alloc [Some 0], true);
   (* 0 -> 2 -> null; node 1 is on a cycle 1 -> 1 but unreachable *)
-  (floyd_array [Some 2; Some 1; None], false);
+  (floyd_array_zero_alloc [Some 2; Some 1; None], false);
   (* 0 -> 7 (out of bounds, treated as null) *)
-  (floyd_array [Some 7], false)
+  (floyd_array_zero_alloc [Some 7], false)
 ].
 
 Definition tests_result := forallb (fun '(c, e) => eqb c e) test_cases.

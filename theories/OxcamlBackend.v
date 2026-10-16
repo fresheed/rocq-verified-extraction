@@ -418,6 +418,19 @@ Definition print_inductive fuel Σ table kn (mib : ExAst.mutual_inductive_body)
   Ok (parameters vars ++ n ++ " =" ++ nl ++
       indent (match cs with [] => "|" | _ => join nl cs end)).
 
+(** Match the original fully qualified kernel name, before OCaml renaming. *)
+Definition allocation_attribute (kn : kername) : bytestring.string :=
+  match String.index 0 "_zero_alloc" (string_of_kername kn) with
+  | Some _ => "[@zero_alloc]"
+  | None => ""
+  end.
+
+Fixpoint function_arity (ty : ExAst.box_type) : nat :=
+  match ty with
+  | ExAst.TArr _ result => S (function_arity result)
+  | _ => 0
+  end.
+
 Definition print_decl fuel Σ table (entry : kername * bool * ExAst.global_decl)
   : result bytestring.string :=
   let '(kn, _, decl) := entry in
@@ -428,8 +441,23 @@ Definition print_decl fuel Σ table (entry : kername * bool * ExAst.global_decl)
     | Some body =>
       n <- value_name table kn ;;
       ty <- print_type_at fuel Σ table (map type_var (seq 0 (length c.(ExAst.cst_type).1))) 0 c.(ExAst.cst_type).2 ;;
-      body <- print_expr fuel Σ table [] body ;;
-      Ok ("let " ++ n ++ " : " ++ ty ++ " =" ++ nl ++ indent body.2 ++ nl)
+      printed <- print_expr fuel Σ table [] body ;;
+      let attr := allocation_attribute kn in
+      (* OxCaml requires a syntactic function, even for a function alias.
+         Fresh arguments avoid shadowing the aliased global constant. *)
+      let printed := match body with
+        | EAst.tConst _ =>
+          if eqb attr "" then printed.2 else
+          let xs := local_names table []
+            (repeat nAnon (function_arity c.(ExAst.cst_type).2)) in
+          match xs with
+          | [] => printed.2
+          | _ => "fun " ++ join " " xs ++ " ->" ++ nl ++
+                 indent (application printed.2 xs)
+          end
+        | _ => printed.2
+        end in
+      Ok ("let" ++ attr ++ " " ++ n ++ " : " ++ ty ++ " =" ++ nl ++ indent printed ++ nl)
     end
   | ExAst.InductiveDecl mib =>
     match mib.(ExAst.ind_finite) with

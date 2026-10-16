@@ -35,6 +35,10 @@ python3 examples/oxcaml/test_backend.py two_ptr -o /tmp/two_ptr.ml
 
 The script compiles and runs the emitted OCaml using `ocamlc`.
 
+The OxCaml backend emits `let[@zero_alloc]` for a generated definition when its
+fully qualified Rocq kernel name contains `_zero_alloc` (including in a module
+name).
+
 ## Usage
 
 After `From VerifiedExtraction Require Import Extraction.`
